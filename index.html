@@ -303,9 +303,9 @@
 
             try {
                 // Obter o conteúdo atual do arquivo JSON no GitHub
-                const response = await fetch('https://api.github.com/repos/SEU_USUARIO/SEU_REPOSITORIO/contents/ranking.json', {
+                const response = await fetch('https://api.github.com/repos/anatalimar/escolacriptoativo/contents/ranking.json', {
                     headers: {
-                        Authorization: `token SEU_TOKEN_DE_ACESSO`,
+                        Authorization: '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',
                         Accept: 'application/vnd.github.v3+json'
                     }
                 });
@@ -317,10 +317,10 @@
                 content.push(newResult);
 
                 // Atualizar o arquivo no GitHub
-                await fetch('https://api.github.com/repos/SEU_USUARIO/SEU_REPOSITORIO/contents/ranking.json', {
+                await fetch('https://api.github.com/repos/anatalimar/escolacriptoativo/contents/ranking.json', {
                     method: 'PUT',
                     headers: {
-                        Authorization: `token SEU_TOKEN_DE_ACESSO`,
+                        Authorization: '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',
                         Accept: 'application/vnd.github.v3+json'
                     },
                     body: JSON.stringify({
