@@ -262,9 +262,9 @@
         // Função para carregar resultados do GitHub
         async function loadRankingFromGitHub() {
             try {
-                const response = await fetch('https://api.github.com/repos/SEU_USUARIO/SEU_REPOSITORIO/contents/ranking.json', {
+                const response = await fetch('https://api.github.com/repos/anatalimar/escolacriptoativo/contents/ranking.json', {
                     headers: {
-                        Authorization: `token SEU_TOKEN_DE_ACESSO`,
+                        Authorization: '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',
                         Accept: 'application/vnd.github.v3+json'
                     }
                 });
@@ -285,7 +285,7 @@
                     const stars = getStars(index + 1);
                     rankList.innerHTML += `
                         <div class='rank-item'>
-                            ${index + 1}. ${entry.name}: ${entry.score}/10
+                            ${index + 1}. ${entry.name}: ${entry.score}/20
                             <span class='rank-stars'>${stars}</span>
                             <div class='rank-details'>Concluído em: ${entry.date}</div>
                         </div>
@@ -397,7 +397,7 @@
 
         // Função para iniciar o temporizador
         function startTimer() {
-            let timeLeft = 20; // 20 segundos por pergunta
+            let timeLeft = 30; // 30 segundos por pergunta
             document.getElementById("timer").textContent = `Tempo restante: ${timeLeft} segundos`;
             timerInterval = setInterval(() => {
                 timeLeft--;
@@ -437,12 +437,12 @@
             // Salvar resultado no GitHub
             saveResultToGitHub(username, score);
             // Exibir resultado
-            document.getElementById("result").textContent = `Sua pontuação: ${score}/10`;
+            document.getElementById("result").textContent = `Sua pontuação: ${score}/20`;
             // Exibir ranking
             const rankingDiv = document.getElementById("ranking");
-            if (score >= 9) {
+            if (score >= 18) {
                 rankingDiv.textContent = `${username}, você é um Mestre em Criptoativos!`;
-            } else if (score >= 7) {
+            } else if (score >= 10) {
                 rankingDiv.textContent = `${username}, você é um Especialista.`;
             } else if (score >= 5) {
                 rankingDiv.textContent = `${username}, você é um Iniciante Avançado.`;
