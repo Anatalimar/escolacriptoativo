@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz sobre Criptoativos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        .quiz-container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+            margin-top: 60px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .start-screen {
+            text-align: center;
+        }
+        .start-screen input {
+            padding: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .question {
+            margin-bottom: 15px;
+        }
+        .options label {
+            display: block;
+            margin: 5px 0;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .espaco {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+			margin-bottom: 18px;
+        }
+		.result {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+        }
+        .timer {
+            text-align: center;
+            font-size: 18px;
+            color: #d9534f;
+            margin-bottom: 10px;
+        }
+        .progress {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .ranking-container {
+            max-width: 600px;
+            margin: auto;
+            background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #ddd;
+        }
+        .ranking-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+		.ranking {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+        }
+        .rank-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .rank-item {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+        }
+        .rank-stars {
+            margin-left: 10px;
+            color: gold;
+            font-size: 18px;
+        }
+        .rank-item:nth-child(1) .rank-stars {
+            color: gold;
+        }
+        .rank-item:nth-child(2) .rank-stars {
+            color: silver;
+        }
+        .rank-item:nth-child(3) .rank-stars {
+            color: #cd7f32;
+        }
+        .rank-item:nth-child(n+4) .rank-stars {
+            color: #ccc;
+        }
+        .rank-details {
+            font-size: 14px;
+            color: #666;
+        }
+        .restart-btn {
+            background-color: #28a745;
+        }
+        .restart-btn:hover {
+            background-color: #218838;
+        }
+        .feedback {
+            text-align: center;
+            margin-top: 10px;
+            min-height: 20px;
+            font-style: italic;
+            color: #17a2b8;
+        }
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela inicial -->
+    <div class="quiz-container">
+        <div id="start-screen" class="start-screen">
+            <h1>Quiz sobre Criptoativos</h1>
+            <p>Insira seu nome para começar:</p>
+            <input type="text" id="username" placeholder="Seu nome" required>
+            <button id="start-btn">Começar Quiz</button>
+        </div>
+        <!-- Quiz -->
+        <div id="quiz" style="display: none;">
+            <h1>Quiz sobre Criptoativos</h1>
+            <div class="progress" id="progress"></div>
+            <div class="timer" id="timer"></div>
+            <div id="question-container"></div>
+            <div class="feedback" id="feedback"></div>
+            <button id="confirm-btn" style="display: none;">Confirmar Resposta</button>
+        </div>
+        <!-- Resultado -->
+        <div id="result-screen" style="display: none;">
+            <div class="result" id="result"></div>
+			<div class="espaco" id="espaco"></div>
+            <div class="ranking" id="ranking"></div>
+            <div class="error-message" id="error-message"></div>
+            <button id="restart-btn" class="restart-btn">Voltar ao Início</button>
+        </div>
+    </div>
+    <!-- Ranking -->
+    <div class="ranking-container">
+        <div class="ranking-header">Ranking dos Jogadores</div>
+        <div id="ranking-display" class="rank-list"></div>
+    </div>
+    <!-- Firebase SDK (versão 8.x) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        // =============================================
+        // CONFIGURAÇÕES DO FIREBASE
+        // =============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfIqAHpTAQW2boqMrsgjEebU7DbHvdk-Y",
+            authDomain: "quiz-escolacriptoativo.firebaseapp.com",
+            projectId: "quiz-escolacriptoativo",
+            storageBucket: "quiz-escolacriptoativo.firebasestorage.app",
+            messagingSenderId: "829421930853",
+            appId: "1:829421930853:web:89be70b981455c0b99f98c"
+        };
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        // =============================================
+        // CONFIGURAÇÕES DO QUIZ
+        // =============================================
+        const TIME_PER_QUESTION = 30;
+        const TOTAL_QUESTIONS = 1;
+        // =============================================
+        // BANCO DE QUESTÕES (20 questões)
+        // =============================================
+        const allQuestions = [
+			{
+				//Questão 01
+				question: "Qual é a principal diferença entre uma blockchain pública e uma privada?",
+				options: [
+				  "a) A blockchain pública requer permissão para acesso, enquanto a privada é acessível a qualquer pessoa.",
+				  "b) A blockchain privada é mais descentralizada do que a pública.",
+				  "c) A blockchain pública permite que qualquer pessoa participe da rede, enquanto a privada exige autorização.",
+				  "d) As blockchains privadas são sempre mais seguras do que as públicas."
+				],
+				answer: "c",
+				explanation: "Blockchains públicas são abertas para qualquer pessoa participar, enquanto blockchains privadas restringem o acesso e participação."
+			},
+			{
+				//Questão 02
+				question: "Qual é um exemplo de blockchain pública?",
+				options: [
+				  "a) Hyperledger Fabric",
+				  "b) Corda",
+				  "c) Ethereum",
+				  "d) Quorum"
+				],
+				answer: "c",
+				explanation: "Ethereum é uma blockchain pública onde qualquer pessoa pode participar sem necessidade de permissão."
+			},
+			{
+				//Questão 03
+				question: "Qual das alternativas é uma vantagem da blockchain privada?",
+				options: [
+				  "a) Maior descentralização",
+				  "b) Maior controle sobre os participantes",
+				  "c) Qualquer pessoa pode validar transações",
+				  "d) Menor necessidade de governança"
+				],
+				answer: "b",
+				explanation: "Blockchains privadas permitem maior controle sobre quem pode participar e validar transações, sendo úteis para empresas."
+			},
+			{
+				//Questão 04
+				question: "Qual foi a primeira criptomoeda criada?",
+				options: [
+				  "a) Ethereum",
+				  "b) Ripple",
+				  "c) Bitcoin",
+				  "d) Litecoin"
+				],
+				answer: "c",
+				explanation: "Bitcoin foi a primeira criptomoeda criada, lançada em 2009 por Satoshi Nakamoto."
+			},
+			{
+				//Questão 05
+				question: "Qual das seguintes criptomoedas permite a execução de contratos inteligentes?",
+				options: [
+				  "a) Bitcoin",
+				  "b) Ethereum",
+				  "c) Dogecoin",
+				  "d) Monero"
+				],
+				answer: "b",
+				explanation: "Ethereum foi a primeira blockchain a implementar contratos inteligentes de forma abrangente."
+			},
+			{
+				//Questão 06
+				question: "O que caracteriza uma altcoin?",
+				options: [
+				  "a) Qualquer criptomoeda que não seja Bitcoin",
+				  "b) Apenas criptomoedas usadas para pagamentos",
+				  "c) Moedas digitais emitidas por bancos centrais",
+				  "d) Moedas digitais centralizadas"
+				],
+				answer: "a",
+				explanation: "O termo altcoin se refere a qualquer criptomoeda alternativa ao Bitcoin."
+			},
+			{
+				//Questão 07
+				question: "Quem é o criador do Bitcoin?",
+				options: [
+				  "a) Vitalik Buterin",
+				  "b) Gavin Wood",
+				  "c) Satoshi Nakamoto",
+				  "d) Charlie Lee"
+				],
+				answer: "c",
+				explanation: "Satoshi Nakamoto é o pseudônimo do criador (ou criadores) do Bitcoin."
+			},
+			{
+				//Questão 08
+				question: "Em que ano foi minerado o primeiro bloco de Bitcoin?",
+				options: [
+				  "a) 2005",
+				  "b) 2009",
+				  "c) 2013",
+				  "d) 2017"
+				],
+				answer: "b",
+				explanation: "O primeiro bloco de Bitcoin (bloco genesis) foi minerado em 3 de janeiro de 2009."
+			},
+			{
+				//Questão 09
+				question: "Qual evento é conhecido como o 'halving' do Bitcoin?",
+				options: [
+				  "a) A duplicação da recompensa por bloco minerado",
+				  "b) A redução da recompensa por bloco minerado pela metade",
+				  "c) O aumento da dificuldade de mineração",
+				  "d) A conversão do Bitcoin em uma blockchain privada"
+				],
+				answer: "b",
+				explanation: "O halving é um evento programado que reduz pela metade a recompensa por mineração de blocos, ocorrendo aproximadamente a cada 4 anos."
+			},
+			{
+				//Questão 10
+				question: "Qual tecnologia permitiu o surgimento de contratos inteligentes?",
+				options: [
+				  "a) Prova de trabalho (PoW)",
+				  "b) Blockchain do Ethereum",
+				  "c) Mineração de Bitcoin",
+				  "d) Stablecoins"
+				],
+				answer: "b",
+				explanation: "A blockchain do Ethereum introduziu a capacidade de executar contratos inteligentes de forma programável."
+			},
+			{
+				//Questão 11
+				question: "O que é DeFi (Finanças Descentralizadas)?",
+				options: [
+				  "a) Um sistema financeiro baseado em bancos centrais",
+				  "b) Uma plataforma que centraliza ativos digitais",
+				  "c) Aplicações financeiras baseadas em blockchain, sem intermediários",
+				  "d) Um sistema para controle de stablecoins"
+				],
+				answer: "c",
+				explanation: "DeFi refere-se a serviços financeiros construídos em blockchains que operam sem intermediários tradicionais."
+			},
+			{
+				//Questão 12
+				question: "Qual inovação trouxe os tokens não fungíveis (NFTs)?",
+				options: [
+				  "a) A possibilidade de criar ativos digitais únicos",
+				  "b) A substituição do Bitcoin no mercado",
+				  "c) A eliminação da necessidade de contratos inteligentes",
+				  "d) A centralização de transações financeiras"
+				],
+				answer: "a",
+				explanation: "NFTs permitem a criação e verificação de propriedade de itens digitais únicos e indivisíveis."
+			},
+			{
+				//Questão 13
+				question: "Como a blockchain impacta o setor de logística?",
+				options: [
+				  "a) Eliminando a necessidade de contratos inteligentes",
+				  "b) Facilitando o rastreamento de produtos",
+				  "c) Criando moedas digitais para transporte",
+				  "d) Acelerando transações bancárias"
+				],
+				answer: "b",
+				explanation: "A blockchain melhora a logística proporcionando rastreabilidade imutável e transparente de produtos ao longo da cadeia de suprimentos."
+			},
+			{
+				//Questão 14
+				question: "Qual benefício a blockchain traz para a área da saúde?",
+				options: [
+				  "a) Eliminação da necessidade de médicos",
+				  "b) Proteção e rastreabilidade de registros médicos",
+				  "c) Redução da necessidade de seguros",
+				  "d) Mineração de dados pessoais para publicidade"
+				],
+				answer: "b",
+				explanation: "Na saúde, a blockchain permite armazenar registros médicos de forma segura e com acesso controlado."
+			},
+			{
+				//Questão 15
+				question: "Qual setor tem sido transformado pelos NFTs?",
+				options: [
+				  "a) Agricultura",
+				  "b) Entretenimento",
+				  "c) Mineração de Bitcoin",
+				  "d) Compliance bancário"
+				],
+				answer: "b",
+				explanation: "O setor de entretenimento tem adotado NFTs para arte digital, colecionáveis e novos modelos de monetização."
+			},
+			{
+				//Questão 16
+				question: "O que a regulamentação busca evitar no mercado de criptoativos?",
+				options: [
+				  "a) A centralização de exchanges",
+				  "b) O uso ilícito de criptoativos",
+				  "c) A criação de novos tokens",
+				  "d) O aumento da mineração"
+				],
+				answer: "b",
+				explanation: "Regulamentações visam principalmente prevenir atividades ilegais como lavagem de dinheiro e financiamento ao terrorismo."
+			},
+			{
+				//Questão 17
+				question: "Qual instituição frequentemente regula os criptoativos nos EUA?",
+				options: [
+				  "a) SEC (Securities and Exchange Commission)",
+				  "b) Banco Central do Brasil",
+				  "c) Comissão Europeia",
+				  "d) ONU"
+				],
+				answer: "a",
+				explanation: "Nos EUA, a SEC é a principal responsável por regular criptoativos que são considerados valores mobiliários."
+			},
+			{
+				//Questão 18
+				question: "Qual a importância do compliance no mercado de criptoativos?",
+				options: [
+				  "a) Garantir que as empresas atuem dentro da legislação",
+				  "b) Aumentar os lucros das exchanges",
+				  "c) Criar novas criptomoedas",
+				  "d) Evitar qualquer tipo de regulamentação"
+				],
+				answer: "a",
+				explanation: "O compliance assegura que as empresas sigam leis e regulamentos aplicáveis ao setor."
+			},
+			{
+				//Questão 19
+				question: "O que caracteriza uma prática ética no mercado de criptoativos?",
+				options: [
+				  "a) Transparência nas operações",
+				  "b) Omissão de informações para evitar volatilidade",
+				  "c) Manipulação de preços para ganho financeiro",
+				  "d) Especulação extrema para atrair investidores"
+				],
+				answer: "a",
+				explanation: "Práticas éticas incluem transparência, honestidade e proteção aos investidores."
+			},
+			{
+				//Questão 20
+				question: "Qual direito do usuário é fundamental no uso de criptoativos?",
+				options: [
+				  "a) Acesso irrestrito ao saldo de qualquer carteira",
+				  "b) Privacidade e proteção de seus dados",
+				  "c) Controle total da emissão de novos tokens",
+				  "d) Isenção de regulamentação financeira"
+				],
+				answer: "b",
+				explanation: "A proteção de dados pessoais e financeiros é um direito essencial dos usuários."
+			},
+			{
+				//Questão 21
+				question: "O que significa KYC (Know Your Customer)?",
+				options: [
+				  "a) Processo para conhecer os clientes e evitar fraudes",
+				  "b) Uma blockchain privada para bancos",
+				  "c) Um novo tipo de stablecoin",
+				  "d) Uma estratégia para evitar regulamentação"
+				],
+				answer: "a",
+				explanation: "KYC é um processo de verificação de identidade para prevenir atividades ilegais."
+			},
+			{
+				//Questão 22
+				question: "O que significa AML (Anti-Money Laundering)?",
+				options: [
+				  "a) Processo para prevenir lavagem de dinheiro",
+				  "b) Um novo tipo de protocolo blockchain",
+				  "c) Estratégia de marketing para criptomoedas",
+				  "d) Uma stablecoin usada para pagamentos internacionais"
+				],
+				answer: "a",
+				explanation: "AML se refere a leis e regulamentos para detectar e prevenir lavagem de dinheiro."
+			},
+			{
+				//Questão 23
+				question: "Qual prática pode ser considerada uma violação de compliance?",
+				options: [
+				  "a) Identificação dos usuários antes de permitir transações",
+				  "b) Permitir operações sem verificar a identidade dos clientes",
+				  "c) Auditoria e transparência financeira",
+				  "d) Reporte de atividades suspeitas às autoridades"
+				],
+				answer: "b",
+				explanation: "Não verificar a identidade dos clientes viola regulamentações KYC/AML."
+			},
+			{
+				//Questão 24
+				question: "Qual é uma obrigação dos usuários de criptoativos?",
+				options: [
+				  "a) Garantir a privacidade absoluta de todas as transações",
+				  "b) Manter suas chaves privadas em segurança",
+				  "c) Permitir que terceiros administrem suas carteiras",
+				  "d) Compartilhar informações bancárias para qualquer transação"
+				],
+				answer: "b",
+				explanation: "Proteger chaves privadas é essencial para a segurança dos próprios ativos."
+			},
+			{
+				//Questão 25
+				question: "O que o GDPR (Regulamento Geral de Proteção de Dados) protege?",
+				options: [
+				  "a) Dados pessoais e privacidade dos usuários",
+				  "b) O anonimato completo de todas as transações",
+				  "c) Apenas empresas de tecnologia",
+				  "d) A emissão de novas criptomoedas"
+				],
+				answer: "a",
+				explanation: "O GDPR protege os dados pessoais dos cidadãos da União Europeia."
+			},
+			{
+				//Questão 26
+				question: "Qual é um dos maiores riscos na gestão de criptoativos sem proteção adequada?",
+				options: [
+				  "a) Ganhos elevados garantidos",
+				  "b) Perda total dos ativos por ataques cibernéticos",
+				  "c) Regulamentação mais rígida",
+				  "d) Aumento da liquidez do mercado"
+				],
+				answer: "b",
+				explanation: "Sem segurança adequada, criptoativos podem ser roubados por hackers."
+			},
+			{
+				//Questão 27
+				question: "Qual é uma prática recomendada para aumentar a segurança dos criptoativos?",
+				options: [
+				  "a) Armazenar chaves privadas em exchanges",
+				  "b) Compartilhar a seed phrase com familiares",
+				  "c) Utilizar carteiras de hardware para armazenamento seguro",
+				  "d) Manter as chaves privadas salvas em arquivos online"
+				],
+				answer: "c",
+				explanation: "Carteiras de hardware são consideradas um dos métodos mais seguros para armazenamento."
+			},
+			{
+				//Questão 28
+				question: "O que caracteriza um ataque de phishing no mundo cripto?",
+				options: [
+				  "a) A interceptação de transações em blockchain",
+				  "b) Um golpe onde hackers tentam enganar usuários para obter suas credenciais",
+				  "c) Um erro no código de contratos inteligentes",
+				  "d) O roubo de criptomoedas via mineração ilegal"
+				],
+				answer: "b",
+				explanation: "Phishing envolve enganar usuários para revelar informações sensíveis como senhas ou seed phrases."
+			},
+			{
+				//Questão 29
+				question: "O que é uma seed phrase em carteiras de criptomoedas?",
+				options: [
+				  "a) Um código que pode ser alterado regularmente",
+				  "b) Uma senha usada para acessar exchanges",
+				  "c) Um conjunto de palavras que permite recuperar uma carteira cripto",
+				  "d) Um endereço de transação pública"
+				],
+				answer: "c",
+				explanation: "A seed phrase (ou frase de recuperação) é usada para restaurar o acesso a uma carteira de criptomoedas."
+			},
+			{
+				//Questão 30
+				question: "Qual é um dos principais riscos ao utilizar exchanges centralizadas?",
+				options: [
+				  "a) Maior velocidade nas transações",
+				  "b) Falta de acesso a contratos inteligentes",
+				  "c) Dependência da segurança da plataforma para armazenar ativos",
+				  "d) Inexistência de taxas de transação"
+				],
+				answer: "c",
+				explanation: "Exchanges centralizadas representam risco de contraparte, pois os usuários não controlam suas chaves privadas."
+			  }
+        ];
+        // =============================================
+        // VARIÁVEIS GLOBAIS
+        // =============================================
+        let username = "";
+        let selectedQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timerInterval;
+        let timeLeft = TIME_PER_QUESTION;
+        // =============================================
+        // FUNÇÕES UTILITÁRIAS
+        // =============================================
+        function getFormattedDateTime() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, "0");
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        }
+        function getStars(position) {
+            switch (position) {
+                case 1: return "⭐⭐⭐";
+                case 2: return "⭐⭐";
+                case 3: return "⭐";
+                default: return "";
+            }
+        }
+        // =============================================
+        // GERENCIAMENTO DO RANKING COM FIREBASE
+        // =============================================
+        function loadRanking() {
+            db.collection('ranking').orderBy('score', 'desc').limit(20).get()
+                .then(snapshot => {
+                    const rankingData = [];
+                    snapshot.forEach(doc => {
+                        rankingData.push(doc.data());
+                    });
+                    displayRanking(rankingData);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar ranking do Firebase:', error);
+                    document.getElementById("error-message").textContent = "Erro ao carregar ranking online.";
+                });
+        }
+        function displayRanking(rankingData) {
+            const rankList = document.getElementById("ranking-display");
+            rankList.innerHTML = "";
+            if (!rankingData || rankingData.length === 0) {
+                rankList.innerHTML += "<div class='rank-item'>Nenhum resultado registrado ainda.</div>";
+                return;
+            }
+            rankingData.forEach((entry, index) => {
+                const stars = getStars(index + 1);
+                rankList.innerHTML += `
+                    <div class='rank-item'>
+                        ${index + 1}. ${entry.name}: ${entry.score}/${TOTAL_QUESTIONS}
+                        <span class='rank-stars'>${stars}</span>
+                        <div class='rank-details'>Concluído em: ${entry.date}</div>
+                    </div>
+                `;
+            });
+        }
+        function saveQuizResult(name, score) {
+            const resultData = {
+                name: name,
+                score: score,
+                date: getFormattedDateTime()
+            };
+            db.collection('ranking').add(resultData)
+                .then(() => {
+                    console.log('Resultado salvo no Firebase com sucesso!');
+                    loadRanking(); // Atualiza o ranking após salvar
+                })
+                .catch(error => {
+                    console.error('Erro ao salvar no Firebase:', error);
+                    document.getElementById("error-message").textContent = "Erro ao salvar online.";
+                });
+        }
+        // =============================================
+        // GERENCIAMENTO DO QUIZ
+        // =============================================
+        function startQuiz() {
+            username = document.getElementById("username").value.trim();
+            if (!username) {
+                alert("Por favor, insira seu nome.");
+                return;
+            }
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("quiz").style.display = "block";
+            document.getElementById("error-message").textContent = "";
+            selectedQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, TOTAL_QUESTIONS);
+            currentQuestionIndex = 0;
+            score = 0;
+            timeLeft = TIME_PER_QUESTION;
+            showQuestion();
+        }
+        function showQuestion() {
+			const questionContainer = document.getElementById("question-container");
+			questionContainer.innerHTML = "";
+			document.getElementById("feedback").innerHTML = "";
+
+			// Verifica se todas as perguntas foram respondidas
+			if (currentQuestionIndex >= selectedQuestions.length) {
+				endQuiz();
+				return;
+			}
+
+			// REATIVA O BOTÃO DE CONFIRMAÇÃO PARA A NOVA PERGUNTA
+			document.getElementById("confirm-btn").disabled = false;
+			document.getElementById("confirm-btn").style.display = "none";
+
+			const currentQuestion = selectedQuestions[currentQuestionIndex];
+			document.getElementById("progress").textContent = 
+				`Pergunta ${currentQuestionIndex + 1} de ${TOTAL_QUESTIONS}`;
+			questionContainer.innerHTML = `
+				<p><strong>${currentQuestionIndex + 1}. ${currentQuestion.question}</strong></p>
+				<div class="options">
+					${currentQuestion.options.map(option => `
+						<label>
+							<input type="radio" name="q${currentQuestionIndex}" value="${option[0]}"> 
+							${option}
+						</label>
+					`).join("")}
+				</div>
+			`;
+			
+			document.querySelectorAll(`input[name="q${currentQuestionIndex}"]`).forEach(input => {
+				input.addEventListener("change", () => {
+					document.getElementById("confirm-btn").style.display = "block";
+				});
+			});
+			startTimer();
+		}
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = TIME_PER_QUESTION;
+            document.getElementById("timer").textContent = `Tempo restante: ${timeLeft} segundos`;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timer").textContent = `Tempo restante: ${timeLeft} segundos`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    nextQuestion();
+                }
+            }, 1000);
+        }
+        function nextQuestion() {
+            clearInterval(timerInterval);
+            const currentQuestion = selectedQuestions[currentQuestionIndex];
+            const selectedOption = document.querySelector(`input[name="q${currentQuestionIndex}"]:checked`);
+            const feedbackDiv = document.getElementById("feedback");
+
+            // Verifica se uma resposta foi selecionada
+            if (selectedOption) {
+                if (selectedOption.value === currentQuestion.answer) {
+                    score++;
+                    feedbackDiv.innerHTML = `✅ Correto! ${currentQuestion.explanation}`;
+                } else {
+                    feedbackDiv.innerHTML = `❌ Incorreto. A resposta correta é ${currentQuestion.answer.toUpperCase()}. ${currentQuestion.explanation}`;
+                }
+            } else {
+                feedbackDiv.innerHTML = "⏩ Tempo esgotado! Nenhuma resposta selecionada.";
+            }
+
+            // Desabilita os botões de opção e o botão de confirmação
+            document.querySelectorAll(`input[name="q${currentQuestionIndex}"]`).forEach(input => {
+                input.disabled = true;
+            });
+            document.getElementById("confirm-btn").disabled = true;
+
+            // Incrementa o índice da pergunta
+            currentQuestionIndex++;
+
+            // Verifica se ainda há perguntas restantes
+            if (currentQuestionIndex < selectedQuestions.length) {
+                setTimeout(() => {
+                    showQuestion();
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    endQuiz();
+                }, 2000);
+            }
+        }
+        function endQuiz() {
+            clearInterval(timerInterval);
+            document.getElementById("quiz").style.display = "none";
+            document.getElementById("result-screen").style.display = "block";
+            saveQuizResult(username, score);
+            document.getElementById("result").textContent = `Sua pontuação: ${score}/${TOTAL_QUESTIONS}`;
+            const rankingDiv = document.getElementById("ranking");
+            if (score >= 18) {
+                rankingDiv.textContent = `${username}, você é um Mestre em Criptoativos!`;
+            } else if (score >= 14) {
+                rankingDiv.textContent = `${username}, você é um Especialista.`;
+            } else if (score >= 10) {
+                rankingDiv.textContent = `${username}, você é um Iniciante Avançado.`;
+            } else if (score >= 6) {
+                rankingDiv.textContent = `${username}, você é um Iniciante.`;
+            } else {
+                rankingDiv.textContent = `${username}, você é um Novato. Continue estudando!`;
+            }
+        }
+        function restartQuiz() {
+            document.getElementById("result-screen").style.display = "none";
+            document.getElementById("start-screen").style.display = "block";
+            document.getElementById("username").value = "";
+            document.getElementById("username").focus();
+            document.getElementById("error-message").textContent = "";
+        }
+        // =============================================
+        // EVENT LISTENERS
+        // =============================================
+        document.getElementById("start-btn").addEventListener("click", startQuiz);
+        document.getElementById("confirm-btn").addEventListener("click", nextQuestion);
+        document.getElementById("restart-btn").addEventListener("click", restartQuiz);
+        // Carrega o ranking ao iniciar
+        window.addEventListener('load', () => {
+            loadRanking();
+        });
+    </script>
+</body>
+</html>
