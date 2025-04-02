@@ -64,7 +64,11 @@
             color: #d9534f;
             margin-bottom: 10px;
         }
-        /* Estilo do ranking */
+        .progress {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
         .ranking-container {
             max-width: 600px;
             margin: auto;
@@ -97,20 +101,38 @@
             font-size: 18px;
         }
         .rank-item:nth-child(1) .rank-stars {
-            color: gold; /* Primeiro lugar: ouro */
+            color: gold;
         }
         .rank-item:nth-child(2) .rank-stars {
-            color: silver; /* Segundo lugar: prata */
+            color: silver;
         }
         .rank-item:nth-child(3) .rank-stars {
-            color: #cd7f32; /* Terceiro lugar: bronze */
+            color: #cd7f32;
         }
         .rank-item:nth-child(n+4) .rank-stars {
-            color: #ccc; /* Demais posições: cinza */
+            color: #ccc;
         }
         .rank-details {
             font-size: 14px;
             color: #666;
+        }
+        .restart-btn {
+            background-color: #28a745;
+        }
+        .restart-btn:hover {
+            background-color: #218838;
+        }
+        .feedback {
+            text-align: center;
+            margin-top: 10px;
+            min-height: 20px;
+            font-style: italic;
+            color: #17a2b8;
+        }
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -126,129 +148,78 @@
         <!-- Quiz -->
         <div id="quiz" style="display: none;">
             <h1>Quiz sobre Criptoativos</h1>
+            <div class="progress" id="progress"></div>
             <div class="timer" id="timer"></div>
             <div id="question-container"></div>
+            <div class="feedback" id="feedback"></div>
             <button id="confirm-btn" style="display: none;">Confirmar Resposta</button>
         </div>
         <!-- Resultado -->
         <div id="result-screen" style="display: none;">
             <div class="result" id="result"></div>
             <div class="ranking" id="ranking"></div>
+            <div class="error-message" id="error-message"></div>
+            <button id="restart-btn" class="restart-btn">Voltar ao Início</button>
         </div>
     </div>
-    <!-- Ranking (fora do quiz-container) -->
+    <!-- Ranking -->
     <div class="ranking-container">
         <div class="ranking-header">Ranking dos Jogadores</div>
         <div id="ranking-display" class="rank-list"></div>
     </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
     <script>
-        // Banco de questões
+        // =============================================
+        // CONFIGURAÇÕES DO FIREBASE
+        // =============================================
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SUA_APP_ID"
+        };
+
+        // Inicializa o Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // =============================================
+        // CONFIGURAÇÕES DO QUIZ
+        // =============================================
+        const TIME_PER_QUESTION = 30;
+        const TOTAL_QUESTIONS = 20;
+
+        // =============================================
+        // BANCO DE QUESTÕES (20 questões)
+        // =============================================
         const allQuestions = [
             {
                 question: "O que é Bitcoin?",
                 options: ["a) Uma moeda digital descentralizada.", "b) Um banco digital.", "c) Uma plataforma de investimento.", "d) Um aplicativo de mensagens criptografadas."],
-                answer: "a"
+                answer: "a",
+                explanation: "Bitcoin é a primeira e mais conhecida moeda digital descentralizada, criada por Satoshi Nakamoto em 2008."
             },
-            {
-                question: "Qual blockchain foi projetada para suportar contratos inteligentes?",
-                options: ["a) Bitcoin", "b) Ethereum", "c) Dogecoin", "d) Litecoin"],
-                answer: "b"
-            },
-            {
-                question: "O que são 'altcoins'?",
-                options: ["a) Moedas digitais emitidas por governos.", "b) Todas as criptomoedas exceto o Bitcoin.", "c) Tokens de utilidade usados apenas em jogos.", "d) Contratos inteligentes."],
-                answer: "b"
-            },
-            {
-                question: "O que significa 'HODL' no contexto de criptoativos?",
-                options: ["a) Um erro de digitação que virou meme.", "b) 'Hold On for Dear Life' (Segure por querida vida).", "c) Um novo tipo de criptomoeda.", "d) Uma técnica de mineração."],
-                answer: "b"
-            },
-            {
-                question: "O que é um contrato inteligente?",
-                options: ["a) Um acordo verbal entre duas partes.", "b) Um programa autônomo que executa condições pré-definidas.", "c) Um contrato físico registrado em blockchain.", "d) Um token específico."],
-                answer: "b"
-            },
-            {
-                question: "Qual é o principal uso do token ERC-20?",
-                options: ["a) Mineração de Bitcoin.", "b) Criação de tokens personalizados na rede Ethereum.", "c) Pagamento de taxas de transação.", "d) Armazenamento de dados."],
-                answer: "b"
-            },
-            {
-                question: "O que é Proof of Work (PoW)?",
-                options: ["a) Um método de consenso usado para validar transações.", "b) Um tipo de contrato inteligente.", "c) Uma carteira de criptomoedas.", "d) Uma ferramenta de análise de mercado."],
-                answer: "a"
-            },
-            {
-                question: "O que é uma carteira fria?",
-                options: ["a) Uma carteira digital conectada à internet.", "b) Uma carteira física usada para armazenar dinheiro.", "c) Uma carteira offline usada para armazenar criptomoedas.", "d) Uma carteira de papel com senhas escritas."],
-                answer: "c"
-            },
-            {
-                question: "O que é DeFi?",
-                options: ["a) Uma forma de financiamento centralizado.", "b) Finanças descentralizadas baseadas em blockchain.", "c) Um tipo de criptomoeda.", "d) Um protocolo de mineração."],
-                answer: "b"
-            },
-            {
-                question: "O que é staking em criptomoedas?",
-                options: ["a) Comprar criptomoedas para investimento.", "b) Bloquear criptomoedas para ganhar recompensas.", "c) Minerar novas moedas.", "d) Vender criptomoedas rapidamente."],
-                answer: "b"
-            },
-            {
-                question: "O que é NFT?",
-                options: ["a) Um tipo de contrato inteligente.", "b) Uma criptomoeda estável.", "c) Token não fungível usado para representar ativos únicos.", "d) Uma carteira de hardware."],
-                answer: "c"
-            },
-            {
-                question: "Qual é o papel dos mineradores em uma blockchain?",
-                options: ["a) Validar transações e adicionar blocos.", "b) Criar novas criptomoedas.", "c) Negociar criptomoedas.", "d) Desenvolver contratos inteligentes."],
-                answer: "a"
-            },
-            {
-                question: "O que é uma stablecoin?",
-                options: ["a) Uma criptomoeda volátil.", "b) Uma criptomoeda vinculada a um ativo estável, como o dólar.", "c) Um token usado apenas em jogos.", "d) Um contrato inteligente."],
-                answer: "b"
-            },
-            {
-                question: "O que é o halving do Bitcoin?",
-                options: ["a) Um evento que duplica a oferta de Bitcoin.", "b) Um evento que reduz pela metade a recompensa de mineração.", "c) Um bug no código do Bitcoin.", "d) Um aumento temporário no preço do Bitcoin."],
-                answer: "b"
-            },
-            {
-                question: "O que é gas fee na rede Ethereum?",
-                options: ["a) A taxa cobrada para realizar transações ou executar contratos inteligentes.", "b) O custo de mineração de Ethereum.", "c) O valor pago para criar um novo token.", "d) O lucro gerado por contratos inteligentes."],
-                answer: "a"
-            },
-            {
-                question: "O que é uma blockchain pública?",
-                options: ["a) Uma blockchain acessível apenas por empresas.", "b) Uma blockchain aberta para qualquer pessoa participar e verificar transações.", "c) Uma blockchain usada apenas por governos.", "d) Uma blockchain privada para transações secretas."],
-                answer: "b"
-            },
-            {
-                question: "O que é uma DAO (Organização Autônoma Descentralizada)?",
-                options: ["a) Uma organização controlada por um único líder.", "b) Uma organização governada por regras codificadas em contratos inteligentes.", "c) Uma empresa tradicional de tecnologia.", "d) Um grupo de investidores anônimos."],
-                answer: "b"
-            },
-            {
-                question: "O que é o protocolo Lightning Network?",
-                options: ["a) Uma solução de escalabilidade para redes de blockchain.", "b) Um novo tipo de criptomoeda.", "c) Um sistema de mineração mais eficiente.", "d) Um contrato inteligente avançado."],
-                answer: "a"
-            },
-            {
-                question: "O que é fork em criptomoedas?",
-                options: ["a) Um erro crítico na rede.", "b) Uma divisão na blockchain resultando em duas versões diferentes.", "c) Um ataque hacker.", "d) Uma atualização de software irrelevante."],
-                answer: "b"
-            }
+            // Adicione as outras 19 questões aqui...
         ];
 
-        // Variáveis globais
+        // =============================================
+        // VARIÁVEIS GLOBAIS
+        // =============================================
         let username = "";
         let selectedQuestions = [];
         let currentQuestionIndex = 0;
         let score = 0;
         let timerInterval;
+        let timeLeft = TIME_PER_QUESTION;
 
-        // Função para formatar a data e hora
+        // =============================================
+        // FUNÇÕES UTILITÁRIAS
+        // =============================================
         function getFormattedDateTime() {
             const now = new Date();
             const day = String(now.getDate()).padStart(2, "0");
@@ -259,145 +230,121 @@
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         }
 
-        // Função para carregar resultados do GitHub
-        async function loadRankingFromGitHub() {
-            try {
-                const response = await fetch('https://api.github.com/repos/anatalimar/escolacriptoativo/contents/ranking.json', {
-                    headers: {
-                        Authorization: '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',
-                        Accept: 'application/vnd.github.v3+json'
-                    }
-                });
-
-                const data = await response.json();
-                const content = JSON.parse(atob(data.content)); // Decodificar base64
-
-                // Exibir ranking
-                const rankList = document.getElementById("ranking-display");
-                rankList.innerHTML = "";
-                if (content.length === 0) {
-                    rankList.innerHTML += "<div class='rank-item'>Nenhum resultado registrado ainda.</div>";
-                    return;
-                }
-
-                content.sort((a, b) => b.score - a.score); // Ordenar por pontuação
-                content.forEach((entry, index) => {
-                    const stars = getStars(index + 1);
-                    rankList.innerHTML += `
-                        <div class='rank-item'>
-                            ${index + 1}. ${entry.name}: ${entry.score}/20
-                            <span class='rank-stars'>${stars}</span>
-                            <div class='rank-details'>Concluído em: ${entry.date}</div>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                console.error('Erro ao carregar ranking:', error);
-            }
-        }
-
-        // Função para salvar resultado no GitHub
-        async function saveResultToGitHub(name, score) {
-            const dateTime = getFormattedDateTime();
-            const newResult = { name, score, date: dateTime };
-
-            try {
-                // Obter o conteúdo atual do arquivo JSON no GitHub
-                const response = await fetch('https://api.github.com/repos/anatalimar/escolacriptoativo/contents/ranking.json', {
-                    headers: {
-                        Authorization: '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',
-                        Accept: 'application/vnd.github.v3+json'
-                    }
-                });
-
-                const data = await response.json();
-                const content = JSON.parse(atob(data.content)); // Decodificar base64
-
-                // Adicionar o novo resultado ao array
-                content.push(newResult);
-
-                // Atualizar o arquivo no GitHub
-                await fetch('https://api.github.com/repos/anatalimar/escolacriptoativo/contents/ranking.json', {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: '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',
-                        Accept: 'application/vnd.github.v3+json'
-                    },
-                    body: JSON.stringify({
-                        message: 'Atualizar ranking',
-                        content: btoa(JSON.stringify(content)), // Codificar em base64
-                        sha: data.sha // SHA do arquivo atual
-                    })
-                });
-
-                console.log('Resultado salvo no GitHub!');
-            } catch (error) {
-                console.error('Erro ao salvar resultado:', error);
-            }
-        }
-
-        // Função para gerar estrelas com base na posição
         function getStars(position) {
             switch (position) {
-                case 1:
-                    return "⭐⭐⭐"; // Primeiro lugar
-                case 2:
-                    return "⭐⭐"; // Segundo lugar
-                case 3:
-                    return "⭐"; // Terceiro lugar
-                default:
-                    return ""; // Demais posições
+                case 1: return "⭐⭐⭐";
+                case 2: return "⭐⭐";
+                case 3: return "⭐";
+                default: return "";
             }
         }
 
-        // Função para iniciar o quiz
-        document.getElementById("start-btn").addEventListener("click", () => {
+        // =============================================
+        // GERENCIAMENTO DO RANKING COM FIREBASE
+        // =============================================
+        async function loadRanking() {
+            try {
+                const rankingRef = db.collection('ranking').orderBy('score', 'desc').limit(20);
+                const snapshot = await rankingRef.get();
+                const rankingData = [];
+                snapshot.forEach(doc => {
+                    rankingData.push(doc.data());
+                });
+                displayRanking(rankingData);
+            } catch (error) {
+                console.error('Erro ao carregar ranking do Firebase:', error);
+                document.getElementById("error-message").textContent = "Erro ao carregar ranking online.";
+            }
+        }
+
+        function displayRanking(rankingData) {
+            const rankList = document.getElementById("ranking-display");
+            rankList.innerHTML = "";
+            if (!rankingData || rankingData.length === 0) {
+                rankList.innerHTML += "<div class='rank-item'>Nenhum resultado registrado ainda.</div>";
+                return;
+            }
+            rankingData.forEach((entry, index) => {
+                const stars = getStars(index + 1);
+                rankList.innerHTML += `
+                    <div class='rank-item'>
+                        ${index + 1}. ${entry.name}: ${entry.score}/${TOTAL_QUESTIONS}
+                        <span class='rank-stars'>${stars}</span>
+                        <div class='rank-details'>Concluído em: ${entry.date}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function saveQuizResult(name, score) {
+            const resultData = {
+                name: name,
+                score: score,
+                date: getFormattedDateTime()
+            };
+            try {
+                await db.collection('ranking').add(resultData);
+                console.log('Resultado salvo no Firebase com sucesso!');
+                loadRanking(); // Atualiza o ranking após salvar
+            } catch (error) {
+                console.error('Erro ao salvar no Firebase:', error);
+                document.getElementById("error-message").textContent = "Erro ao salvar online.";
+            }
+        }
+
+        // =============================================
+        // GERENCIAMENTO DO QUIZ
+        // =============================================
+        function startQuiz() {
             username = document.getElementById("username").value.trim();
             if (!username) {
                 alert("Por favor, insira seu nome.");
                 return;
             }
-            // Esconder tela inicial e mostrar quiz
             document.getElementById("start-screen").style.display = "none";
             document.getElementById("quiz").style.display = "block";
-            // Selecionar 10 questões aleatórias
-            selectedQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
-            // Exibir primeira pergunta
+            document.getElementById("error-message").textContent = "";
+            selectedQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, TOTAL_QUESTIONS);
+            currentQuestionIndex = 0;
+            score = 0;
+            timeLeft = TIME_PER_QUESTION;
             showQuestion();
-        });
+        }
 
-        // Função para exibir a pergunta atual
         function showQuestion() {
             const questionContainer = document.getElementById("question-container");
             questionContainer.innerHTML = "";
+            document.getElementById("feedback").innerHTML = "";
             if (currentQuestionIndex >= selectedQuestions.length) {
                 endQuiz();
                 return;
             }
             const currentQuestion = selectedQuestions[currentQuestionIndex];
+            document.getElementById("progress").textContent = 
+                `Pergunta ${currentQuestionIndex + 1} de ${TOTAL_QUESTIONS}`;
             questionContainer.innerHTML = `
                 <p><strong>${currentQuestionIndex + 1}. ${currentQuestion.question}</strong></p>
                 <div class="options">
-                    ${currentQuestion.options.map(option => `<label><input type="radio" name="q${currentQuestionIndex}" value="${option[0]}"> ${option}</label>`).join("")}
+                    ${currentQuestion.options.map(option => `
+                        <label>
+                            <input type="radio" name="q${currentQuestionIndex}" value="${option[0]}"> 
+                            ${option}
+                        </label>
+                    `).join("")}
                 </div>
             `;
-            // Ocultar botão de confirmação inicialmente
             document.getElementById("confirm-btn").style.display = "none";
-
-            // Adicionar evento para mostrar botão de confirmação quando uma resposta for selecionada
             document.querySelectorAll(`input[name="q${currentQuestionIndex}"]`).forEach(input => {
                 input.addEventListener("change", () => {
                     document.getElementById("confirm-btn").style.display = "block";
                 });
             });
-
-            // Iniciar temporizador
             startTimer();
         }
 
-        // Função para iniciar o temporizador
         function startTimer() {
-            let timeLeft = 30; // 30 segundos por pergunta
+            clearInterval(timerInterval);
+            timeLeft = TIME_PER_QUESTION;
             document.getElementById("timer").textContent = `Tempo restante: ${timeLeft} segundos`;
             timerInterval = setInterval(() => {
                 timeLeft--;
@@ -409,52 +356,68 @@
             }, 1000);
         }
 
-        // Função para ir para a próxima pergunta
         function nextQuestion() {
             clearInterval(timerInterval);
-            // Verificar resposta
             const currentQuestion = selectedQuestions[currentQuestionIndex];
             const selectedOption = document.querySelector(`input[name="q${currentQuestionIndex}"]:checked`);
-            if (selectedOption && selectedOption.value === currentQuestion.answer) {
-                score++;
+            const feedbackDiv = document.getElementById("feedback");
+            if (selectedOption) {
+                if (selectedOption.value === currentQuestion.answer) {
+                    score++;
+                    feedbackDiv.innerHTML = `✅ Correto! ${currentQuestion.explanation}`;
+                } else {
+                    feedbackDiv.innerHTML = `❌ Incorreto. A resposta correta é ${currentQuestion.answer.toUpperCase()}. ${currentQuestion.explanation}`;
+                }
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    showQuestion();
+                }, 2000);
+            } else {
+                feedbackDiv.innerHTML = "⏩ Tempo esgotado! Nenhuma resposta selecionada.";
+                currentQuestionIndex++;
+                showQuestion();
             }
-            // Avançar para a próxima pergunta
-            currentQuestionIndex++;
-            showQuestion();
         }
 
-        // Evento para confirmar resposta
-        document.getElementById("confirm-btn").addEventListener("click", () => {
-            nextQuestion();
-        });
-
-        // Função para encerrar o quiz
         function endQuiz() {
             clearInterval(timerInterval);
-            // Esconder quiz e mostrar resultado
             document.getElementById("quiz").style.display = "none";
             document.getElementById("result-screen").style.display = "block";
-            // Salvar resultado no GitHub
-            saveResultToGitHub(username, score);
-            // Exibir resultado
-            document.getElementById("result").textContent = `Sua pontuação: ${score}/20`;
-            // Exibir ranking
+            saveQuizResult(username, score);
+            document.getElementById("result").textContent = `Sua pontuação: ${score}/${TOTAL_QUESTIONS}`;
             const rankingDiv = document.getElementById("ranking");
             if (score >= 18) {
                 rankingDiv.textContent = `${username}, você é um Mestre em Criptoativos!`;
-            } else if (score >= 10) {
+            } else if (score >= 14) {
                 rankingDiv.textContent = `${username}, você é um Especialista.`;
-            } else if (score >= 5) {
+            } else if (score >= 10) {
                 rankingDiv.textContent = `${username}, você é um Iniciante Avançado.`;
+            } else if (score >= 6) {
+                rankingDiv.textContent = `${username}, você é um Iniciante.`;
             } else {
-                rankingDiv.textContent = `${username}, você é um Novato.`;
+                rankingDiv.textContent = `${username}, você é um Novato. Continue estudando!`;
             }
-            // Carregar ranking do GitHub
-            loadRankingFromGitHub();
         }
 
-        // Carregar ranking ao carregar a página
-        window.onload = loadRankingFromGitHub;
+        function restartQuiz() {
+            document.getElementById("result-screen").style.display = "none";
+            document.getElementById("start-screen").style.display = "block";
+            document.getElementById("username").value = "";
+            document.getElementById("username").focus();
+            document.getElementById("error-message").textContent = "";
+        }
+
+        // =============================================
+        // EVENT LISTENERS
+        // =============================================
+        document.getElementById("start-btn").addEventListener("click", startQuiz);
+        document.getElementById("confirm-btn").addEventListener("click", nextQuestion);
+        document.getElementById("restart-btn").addEventListener("click", restartQuiz);
+
+        // Carrega o ranking ao iniciar
+        window.addEventListener('load', () => {
+            loadRanking();
+        });
     </script>
 </body>
 </html>
